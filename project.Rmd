@@ -1,0 +1,76 @@
+---
+title: "Practical Machine Learning Project"
+output: html_document
+---
+
+#Introduction
+In this project we're gonna make some prediction using random forest with 10 fold cross validation in the dataset provided by coursera.org.
+
+Let's begin with the head of the code, including the packet and setting the seed (in roder to have the same results) and reading the documents
+```{r}
+library(caret)
+set.seed(12345)
+
+data = read.csv("pml-training.csv")
+dim(data)
+```
+
+This chunk of code splits the data between the training and the testing set.
+```{r}
+train = sample(1:dim(data)[1], size=dim(data)[1] * 0.6, replace=F)
+dataTrain = data[train,]
+dataTest = data[-train,]
+dim(dataTrain)
+dim(dataTest)
+```
+
+
+As explained in the course we are now using the training set to make some exploration and to predict the results in the test set
+We can start with a simple summary of the main important column (considered by how meaningful the majority of the rows are).
+
+```{r}
+col = c("roll_belt", "pitch_belt", "yaw_belt", "total_accel_belt",
+        "gyros_belt_x", "gyros_dumbbell_y", "gyros_dumbbell_z",
+        "accel_dumbbell_x", "accel_dumbbell_y", "accel_dumbbell_z",
+        "magnet_dumbbell_x", "magnet_dumbbell_y", "magnet_dumbbell_z",
+        "roll_forearm", "pitch_forearm", "yaw_forearm",
+        "total_accel_forearm",
+        "gyros_forearm_x", "gyros_forearm_y", "gyros_forearm_z",
+        "accel_forearm_x", "accel_forearm_y", "accel_forearm_z",
+        "magnet_forearm_x", "magnet_forearm_y", "magnet_forearm_z",
+        "classe")
+D1train = dataTrain[,col]
+summary(D1train)
+```
+
+As said before we train our model with a random forest with 10 fold cross validation and we look at the results.
+
+```{r}
+trainctl <- trainControl(method = "cv", number = 10, verboseIter = FALSE)
+
+model <- train(classe ~ .,
+                method="rf",
+                trControl = trainctl,
+                family="binomial",
+                data=D1train)
+model
+
+```
+
+The cross validation error estimate is 0.989, around 98.9%
+
+We predict in-sample (our training data), and see the error rate:
+```{r}
+Ptrain = predict(model, newdata=dataTrain)
+Atrain = sum(Ptrain == dataTrain$classe) / length(Ptrain)
+Atrain
+```
+
+Considered that we were able to predict the data with a fantastic error we choose to predict the testing set with that, without looking for something different (that should be more inappropriate).
+In the last chunk we can find the code that predict the testing set with a pretty small and unbiased error (we didn't put the testing set into the training set)
+
+```{r}
+Ptest = predict(model, newdata=dataTest)
+Atest = sum(Ptest == dataTest$classe) / length(Ptest)
+Atest
+```
